@@ -242,32 +242,13 @@ function estimateEdgeAngle(currentRotation) {
     // Filter noise
     const candidates = edges.filter((e) => e.len >= minLen);
 
-    // Find the edge whose angle is closest to (currentRotation % 90 == 0) ?
-    // No, we want to align the Image Rotation to match the Wall Rotation.
-    // So we find the candidate with minimum angular diff to currentRotation.
-
-    // However, buildings have 90 degree corners. 
-    // If the wall is at 0 degrees, and image is at 90 degrees, diff is 90. 
-    // They are ALIGNED (perpendicularly).
-    // So we want min diff module 90.
-
     const target = (currentRotation || 0);
 
     let bestAngle = target;
     let minDiff = Infinity;
 
     candidates.forEach(e => {
-        // Test alignment to this wall
-        // e.angle is the wall angle. 
-        // We want to snap image to e.angle OR e.angle + 90 OR e.angle + 180...
-        // Wait, "Align" usually means "Make Parallel".
-        // But if I have a picture of a house, and I rotate it, 
-        // I might want 'up' to assume 'North' of the wall.
-        // Let's standardise: Snap to the nearest 90-degree increment relative to the wall?
-        // Or simply Snap to the Wall Angle itself (mod 180)?
 
-        // Let's try simpler: Snap absolute image rotation to absolute wall angle (mod 180).
-        // Check 4 orientations:
         const wallAng = e.angle;
 
         [0, 90, 180, -90].forEach(offset => {
@@ -965,14 +946,6 @@ function moveDraw(e) {
             const prevOffsetY = editorState.view.offsetY || 0;
             editorState.view.scale = newScale;
 
-            // Re-center around pinch point (simplified from handleWheel)
-            // For robustness we rely on just setting scale for this iteration to avoid jumpiness
-            // To gain full pinch-pan, we'd need to track pinch-center delta too. 
-            // Let's stick to Scale for simplicity and stability unless requested otherwise.
-            // Actually, mapInterop allows pan + zoom. Let's just do Scale to match "Wheel" behavior.
-
-            // ... Code from handleWheel largely ...
-            // We need to re-calculate offsets to keep the world point under the pinch center stable.
             const base = {
                 x: (worldBefore.lng - editorState.transform.minLng) * editorState.transform.cosLat * editorState.transform.scale + editorState.padding,
                 y: (editorState.transform.maxLat - worldBefore.lat) * editorState.transform.scale + editorState.padding
@@ -1040,10 +1013,7 @@ function endDraw(e) {
     }
 
     if (editorState.activePointers.size > 0) {
-        // If we still have fingers down, don't end the drawing context entirely?
-        // Actually if we lift one finger during pinch, we stop pinching.
-        // If we lift the drawing finger, we stop drawing.
-        // Simple rule: If we lift ANY finger, reset pinch handling.
+        
         editorState.pinchStartDist = 0;
         return;
     }
@@ -1098,27 +1068,6 @@ export function init(canvas, outline, strokeColor = "#ef4444", strokeWidth = 2) 
     editorState.outline = outline || [];
     editorState.strokeColor = strokeColor || editorState.strokeColor;
     editorState.strokeWidth = strokeWidth || editorState.strokeWidth;
-
-    // Reset state bits or let setContext handle it?
-    // User complaint "persisted from one map page to next" implies Global State didn't clear.
-    // If I reload the page, it clears. But SPA.
-    // So init should wipe old data?
-    // But init is called when opening the modal.
-    // If I close and reopen the modal on SAME page, I want persistence?
-    // BuildingIsolation.razor preserves state? No, OnParametersSet resets if key changes.
-    // But if I switch PAGES, Map 1 -> Map 2.
-    // Map 2 might open Building Editor for Building X (which has no data). 
-    // If buildingEditor.js still has Building Y data from Map 1, that's bad.
-    // But `setContext` (which I implemented) should swap to Building X (empty).
-    // So `buildingEditor.js` might actually be fine with my previous fix?
-    // BUT user said "drawings persisted from one map page to the next". This was BEFORE my context switch fix on buildingEditor? No, user said "while testing... issue... solved! however... persisted".
-    // Wait, the "persisted" comment was likely about the MAIN map, not the editor? 
-    // "drawings persisted from one map page to the next" -> mapInterop.
-    // "switch map page with building editor open... app crashed" -> serialization.
-    // So buildingEditor persistence might be solved by setContext.
-    // I already fixed mapInterop persistence.
-    // I will double check `init` in buildingEditor does not unintentionally resurrect stuff, but I think `setContext` is the key.
-    // I will stick to just ensuring `mapInterop.js` fix and Version Bumps.
 
     editorState.mode = "draw"; // Default to draw mode
     loadAssets();
@@ -1679,11 +1628,6 @@ export function setContext(buildingId) {
     }
 
     editorState.activeBuildingId = newId;
-
-    // Ensure canvas transform is recalculated for new context if needed? 
-    // Usually init() handles this, but switching context implies we might stay in same view.
-    // Actually, BuildingIsolation calls init() whenever outline changes, so transform will be reset there.
-    // We just need to make sure data is swapped.
 
     redraw();
 }
