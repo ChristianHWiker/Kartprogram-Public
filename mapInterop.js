@@ -441,10 +441,7 @@ function redraw() {
             }
         }
     };
-
-    // Filter features based on activeGroupId for isolation
-    // Simplified Redraw: state.features is ALREADY isolated.
-    // No filtering needed.
+    
     const ordered = sortByZIndex(state.features);
     ordered.forEach(drawFeature);
 
@@ -970,8 +967,7 @@ export async function init(mapElement, canvasElement, buildingCanvas = null) {
     state.canvas = canvas;
     state.ctx = canvas.getContext("2d");
     canvas.style.touchAction = "none";
-
-    // DIAGNOSTIC: Check WebGL Support (Safely)
+    
     try {
         if (maplibre && typeof maplibre.supported === 'function') {
             if (!maplibre.supported()) {
@@ -1131,8 +1127,6 @@ export function clearCanvas() {
         // Global clear
         state.ctx.clearRect(0, 0, state.canvas.width, state.canvas.height);
         state.features = [];
-        // Optional: Should global clear wipe ALL buildings? 
-        // User asked for "Isolated", so probably NOT. Global clear wipes 'global'.
     }
 
     state.selectedFeatureId = null;
@@ -1191,8 +1185,6 @@ export function registerSelectionListener(dotNetRef) {
     selectionListener = dotNetRef;
 }
 
-// State helpers for persistence
-// State helpers for persistence
 export function exportFeatures() {
     // 1. Sync current features back to store
     const currentGroup = state.activeGroupId || "global";
@@ -1204,9 +1196,6 @@ export function exportFeatures() {
         allFeatures = allFeatures.concat(state.featureStore[key]);
     }
 
-    // 3. Sort/Normalize
-    // We can't rely on global z-index sorting across groups easily, 
-    // but export should probably just return the list.
     return allFeatures;
 }
 
@@ -1353,3 +1342,4 @@ export function rotateSelectedFeature(angle) {
         redraw();
     }
 }
+
