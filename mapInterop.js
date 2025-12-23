@@ -36,7 +36,6 @@ function getNextZIndex() {
 
 function withFeatureMetadata(feature, fallbackZ = 0) {
     if (!feature) return feature;
-    // Mutate existing object to preserve references during interactions
     if (!feature.id) feature.id = crypto.randomUUID();
     if (typeof feature.zIndex !== "number") feature.zIndex = fallbackZ;
     if (feature.groupId === undefined) feature.groupId = null;
@@ -1342,4 +1341,5 @@ export function rotateSelectedFeature(angle) {
         redraw();
     }
 }
+
 
